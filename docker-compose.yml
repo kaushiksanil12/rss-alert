@@ -9,9 +9,11 @@ services:
     # This simulates a daily cron job within the container.
     command: >
       sh -c "while true; do
-        echo \"[$(date)] Starting daily vulnerability scan...\"
+        date
+        echo 'Starting daily vulnerability scan...'
         python main.py
-        echo \"[$(date)] Scan complete. Sleeping for 24 hours...\"
+        date
+        echo 'Scan complete. Sleeping for 24 hours...'
         sleep 86400
       done"
 
