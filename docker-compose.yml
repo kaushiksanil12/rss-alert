@@ -29,8 +29,8 @@ services:
       - /tmp:mode=1777
 
     volumes:
-      # Mount a persistent volume to the /data directory for the SQLite database
-      - vuln-data:/data
+      # Bind mount the ./data directory to /data in the container
+      - ./data:/data
       # Optionally mount sources.yaml if you want to edit it without rebuilding
       - ./sources.yaml:/app/sources.yaml:ro
 
@@ -46,6 +46,3 @@ services:
         max-size: "10m"
         max-file: "3"
 
-volumes:
-  vuln-data:
-    driver: local
