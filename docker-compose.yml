@@ -1,0 +1,49 @@
+services:
+  rss-alert-bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: rss-alert-bot
+    
+    # Run the bot in an infinite loop, executing every 24 hours.
+    # This simulates a daily cron job within the container.
+    command: >
+      sh -c "while true; do
+        echo \"[$(date)] Starting daily vulnerability scan...\"
+        python main.py
+        echo \"[$(date)] Scan complete. Sleeping for 24 hours...\"
+        sleep 86400
+      done"
+
+    # Security hardening (matching the Go implementation's security posture)
+    read_only: true          # Root filesystem is read-only
+    cap_drop:
+      - ALL                  # Drop all Linux capabilities
+    security_opt:
+      - no-new-privileges:true
+    
+    # Provide a writable tmpfs for temporary files (e.g., Python runtime/requests)
+    tmpfs:
+      - /tmp:mode=1777
+
+    volumes:
+      # Mount a persistent volume to the /data directory for the SQLite database
+      - vuln-data:/data
+      # Optionally mount sources.yaml if you want to edit it without rebuilding
+      - ./sources.yaml:/app/sources.yaml:ro
+
+    # Load environment variables from the .env file
+    env_file:
+      - .env
+
+    restart: unless-stopped
+    
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  vuln-data:
+    driver: local

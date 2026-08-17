@@ -1,0 +1,66 @@
+import os
+import yaml
+from dataclasses import dataclass
+from typing import List, Optional
+from dotenv import load_dotenv
+
+@dataclass
+class SourceConfig:
+    name: str
+    technology: str
+    type: str
+    keyword: Optional[str] = None
+    ecosystem: Optional[str] = None
+    package: Optional[str] = None
+    url: Optional[str] = None
+    path: Optional[str] = None
+    format: Optional[str] = None
+    min_severity: Optional[str] = None
+
+@dataclass
+class AppConfig:
+    teams_webhook_url: str
+    critical_webhook_url: str
+    weekly_digest_webhook_url: str
+    nvd_api_key: str
+    min_alert_severity: str
+    weekly_digest_day: str
+    failure_alert_threshold: int
+    retention_days: int
+    sources: List[SourceConfig]
+
+def load_config(sources_path: str = "sources.yaml") -> AppConfig:
+    load_dotenv()
+    
+    try:
+        with open(sources_path, 'r') as f:
+            data = yaml.safe_load(f)
+    except FileNotFoundError:
+        data = {"sources": []}
+        
+    sources = []
+    for s in data.get("sources", []):
+        sources.append(SourceConfig(
+            name=s.get("name"),
+            technology=s.get("technology"),
+            type=s.get("type"),
+            keyword=s.get("keyword"),
+            ecosystem=s.get("ecosystem"),
+            package=s.get("package"),
+            url=s.get("url"),
+            path=s.get("path"),
+            format=s.get("format"),
+            min_severity=s.get("min_severity")
+        ))
+        
+    return AppConfig(
+        teams_webhook_url=os.getenv("TEAMS_WEBHOOK_URL", ""),
+        critical_webhook_url=os.getenv("CRITICAL_WEBHOOK_URL", ""),
+        weekly_digest_webhook_url=os.getenv("WEEKLY_DIGEST_WEBHOOK_URL", ""),
+        nvd_api_key=os.getenv("NVD_API_KEY", ""),
+        min_alert_severity=os.getenv("MIN_ALERT_SEVERITY", "LOW"),
+        weekly_digest_day=os.getenv("WEEKLY_DIGEST_DAY", "Monday"),
+        failure_alert_threshold=int(os.getenv("FAILURE_ALERT_THRESHOLD", "3")),
+        retention_days=int(os.getenv("RETENTION_DAYS", "90")),
+        sources=sources
+    )
