@@ -23,6 +23,12 @@ class AppConfig:
     critical_webhook_url: str
     weekly_digest_webhook_url: str
     nvd_api_key: str
+    smtp_server: str
+    smtp_port: int
+    smtp_username: str
+    smtp_password: str
+    smtp_from: str
+    smtp_to: str
     min_alert_severity: str
     weekly_digest_day: str
     failure_alert_threshold: int
@@ -58,6 +64,12 @@ def load_config(sources_path: str = "sources.yaml") -> AppConfig:
         critical_webhook_url=os.getenv("CRITICAL_WEBHOOK_URL", ""),
         weekly_digest_webhook_url=os.getenv("WEEKLY_DIGEST_WEBHOOK_URL", ""),
         nvd_api_key=os.getenv("NVD_API_KEY", ""),
+        smtp_server=os.getenv("SMTP_SERVER", ""),
+        smtp_port=int(os.getenv("SMTP_PORT", "587")),
+        smtp_username=os.getenv("SMTP_USERNAME", ""),
+        smtp_password=os.getenv("SMTP_PASSWORD", ""),
+        smtp_from=os.getenv("SMTP_FROM", ""),
+        smtp_to=os.getenv("SMTP_TO", ""),
         min_alert_severity=os.getenv("MIN_ALERT_SEVERITY", "LOW"),
         weekly_digest_day=os.getenv("WEEKLY_DIGEST_DAY", "Monday"),
         failure_alert_threshold=int(os.getenv("FAILURE_ALERT_THRESHOLD", "3")),

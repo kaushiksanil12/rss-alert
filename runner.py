@@ -5,12 +5,14 @@ from config import AppConfig
 from fetchers import NVDFetcher, OSVFetcher, RSSFetcher, Severity
 from fetchers.base import SEVERITY_ORDER
 from alerts import TeamsClient
+from email_client import EmailClient
 
 class Runner:
     def __init__(self, cfg: AppConfig):
         self.cfg = cfg
         self.main_client = TeamsClient(cfg.teams_webhook_url)
         self.crit_client = TeamsClient(cfg.critical_webhook_url) if cfg.critical_webhook_url else None
+        self.email_client = EmailClient(cfg)
         
         self.fetchers = []
         for s in cfg.sources:
@@ -54,6 +56,7 @@ class Runner:
                     
             if to_alert:
                 self.main_client.send_findings(to_alert)
+                self.email_client.send_findings(to_alert)
                 
             if to_escalate and self.crit_client:
                 self.crit_client.send_findings(to_escalate)
@@ -77,6 +80,7 @@ class Runner:
             if failures >= self.cfg.failure_alert_threshold:
                 print(f"Source {source} failure threshold exceeded. Sending meta-alert.")
                 self.main_client.send_meta_alert(source, failures)
+                self.email_client.send_meta_alert(source, failures)
             return []
 
         # Global safeguard: limit to 20 vulnerabilities per run per source
