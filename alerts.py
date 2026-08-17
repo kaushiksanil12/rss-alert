@@ -14,7 +14,7 @@ class TeamsClient:
         if not findings or not self.is_configured():
             return
 
-        card = self._build_message_card(findings)
+        card = self._build_adaptive_card(findings)
         self._post(card)
 
     def send_meta_alert(self, source: str, consecutive_days: int):
@@ -22,90 +22,121 @@ class TeamsClient:
             return
             
         card = {
-            "@type": "MessageCard",
-            "@context": "http://schema.org/extensions",
-            "themeColor": "FF6B35",
-            "summary": f"⚠️ Source '{source}' has failed for {consecutive_days} consecutive runs",
-            "title": "⚠️ Vulnerability Source Failure Alert",
-            "text": f"**Source `{source}`** has failed to fetch vulnerability data for **{consecutive_days} consecutive runs**. This may indicate a silent blind spot. Please investigate the source configuration and connectivity."
+            "type": "message",
+            "attachments": [
+                {
+                    "contentType": "application/vnd.microsoft.card.adaptive",
+                    "content": {
+                        "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+                        "type": "AdaptiveCard",
+                        "version": "1.2",
+                        "body": [
+                            {
+                                "type": "TextBlock",
+                                "text": "⚠️ Vulnerability Source Failure Alert",
+                                "weight": "Bolder",
+                                "size": "Medium",
+                                "color": "Attention"
+                            },
+                            {
+                                "type": "TextBlock",
+                                "text": f"**Source `{source}`** has failed to fetch vulnerability data for **{consecutive_days} consecutive runs**. This may indicate a silent blind spot. Please investigate the source configuration and connectivity.",
+                                "wrap": True
+                            }
+                        ]
+                    }
+                }
+            ]
         }
         self._post(card)
 
-    def _build_message_card(self, findings: List[Dict[str, Any]]) -> Dict[str, Any]:
+    def _build_adaptive_card(self, findings: List[Dict[str, Any]]) -> Dict[str, Any]:
         summary = f"🛡️ {len(findings)} new security finding(s) detected"
-        theme_color = self._severity_theme_color(findings)
-
-        sections = []
+        
+        body_blocks = [
+            {
+                "type": "TextBlock",
+                "text": summary,
+                "weight": "Bolder",
+                "size": "Medium",
+                "wrap": True
+            }
+        ]
+        
         for i, f in enumerate(findings):
             if i >= 20:
                 break
                 
-            title = f"**{f['cve_id']}** — {f['technology']} (Source: {f['source']})"
+            color = self._severity_theme_color(f['severity'])
+            facts = [
+                {"title": "Technology:", "value": f['technology']},
+                {"title": "Severity:", "value": f['severity']},
+                {"title": "Source:", "value": f['source']}
+            ]
+            
+            desc = f.get('description', '')
+            if desc:
+                if len(desc) > 300:
+                    desc = desc[:297] + "..."
+                facts.append({"title": "Description:", "value": desc})
+                
+            fixed = f.get('fixed_version', '')
+            if fixed:
+                facts.append({"title": "Fixed in:", "value": fixed})
+                
+            title_text = f"**{f['cve_id']}**"
             if f.get('url'):
-                title = f"**[{f['cve_id']}]({f['url']})** — {f['technology']} (Source: {f['source']})"
-
-            section = {
-                "activityTitle": title,
-                "activitySubtitle": f"Severity: **{f['severity']}** | Published: {f.get('published', 'unknown')}",
-                "facts": self._build_facts(f),
-                "markdown": True
-            }
-            if f.get('url'):
-                section["potentialAction"] = [{
-                    "@type": "OpenUri",
-                    "name": "View Advisory",
-                    "targets": [{"os": "default", "uri": f['url']}]
-                }]
-            sections.append(section)
-
-        remaining = len(findings) - len(sections)
-        text = ""
+                title_text = f"[{f['cve_id']}]({f['url']})"
+                
+            body_blocks.append({
+                "type": "Container",
+                "spacing": "Medium",
+                "separator": True,
+                "items": [
+                    {
+                        "type": "TextBlock",
+                        "text": title_text,
+                        "weight": "Bolder",
+                        "size": "Default",
+                        "color": color
+                    },
+                    {
+                        "type": "FactSet",
+                        "facts": facts
+                    }
+                ]
+            })
+            
+        remaining = len(findings) - min(len(findings), 20)
         if remaining > 0:
-            text = f"*...and {remaining} more findings. See the database for the full list.*"
+             body_blocks.append({
+                 "type": "TextBlock",
+                 "text": f"...and {remaining} more findings. See the database for the full list.",
+                 "wrap": True,
+                 "isSubtle": True
+             })
 
         return {
-            "@type": "MessageCard",
-            "@context": "http://schema.org/extensions",
-            "themeColor": theme_color,
-            "summary": summary,
-            "title": summary,
-            "text": text,
-            "sections": sections
+            "type": "message",
+            "attachments": [
+                {
+                    "contentType": "application/vnd.microsoft.card.adaptive",
+                    "content": {
+                        "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+                        "type": "AdaptiveCard",
+                        "version": "1.2",
+                        "body": body_blocks
+                    }
+                }
+            ]
         }
 
-    def _build_facts(self, f: Dict[str, Any]) -> List[Dict[str, str]]:
-        facts = [
-            {"name": "Technology", "value": f['technology']},
-            {"name": "Severity", "value": f['severity']},
-            {"name": "Source", "value": f['source']}
-        ]
-        
-        desc = f.get('description', '')
-        if desc:
-            if len(desc) > 300:
-                desc = desc[:297] + "..."
-            facts.append({"name": "Description", "value": desc})
-            
-        fixed = f.get('fixed_version', '')
-        if fixed:
-            facts.append({"name": "Fixed in", "value": fixed})
-            
-        return facts
-
-    def _severity_theme_color(self, findings: List[Dict[str, Any]]) -> str:
-        highest = Severity.UNKNOWN
-        for f in findings:
-            if SEVERITY_ORDER.get(f['severity'], 0) > SEVERITY_ORDER.get(highest, 0):
-                highest = f['severity']
-                
-        if highest == Severity.CRITICAL:
-            return "8B0000"
-        elif highest == Severity.HIGH:
-            return "D73A49"
-        elif highest == Severity.MEDIUM:
-            return "E36209"
-        else:
-            return "0075CA"
+    def _severity_theme_color(self, severity: str) -> str:
+        if severity in [Severity.CRITICAL, Severity.HIGH]:
+            return "Attention"  # Red text in Adaptive Cards
+        elif severity == Severity.MEDIUM:
+            return "Warning"    # Yellow/Orange text
+        return "Default"        # Standard text
 
     def _post(self, card: Dict[str, Any]):
         try:
