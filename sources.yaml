@@ -124,9 +124,4 @@ sources:
     type: osv
     ecosystem: Maven
     package: org.springframework.boot:spring-boot
-  
-  # ─── Alert App Internal (Self-Scan) ────────────────────────────────────────
-  - name: alert_app_gomod
-    technology: "Alert App (Go)"
-    type: osv_gomod
-    path: "/workspace/go.mod"
+
