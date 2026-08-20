@@ -33,6 +33,12 @@ class AppConfig:
     retention_days: int
     sources: List[SourceConfig]
 
+def _get_str(key: str, default: str = "") -> str:
+    val = os.getenv(key, default)
+    if val:
+        val = val.strip().strip("'\"")
+    return val
+
 def load_config(sources_path: str = "sources.yaml") -> AppConfig:
     load_dotenv()
     
@@ -58,17 +64,17 @@ def load_config(sources_path: str = "sources.yaml") -> AppConfig:
         ))
         
     return AppConfig(
-        teams_webhook_url=os.getenv("TEAMS_WEBHOOK_URL", ""),
-        nvd_api_key=os.getenv("NVD_API_KEY", ""),
-        smtp_server=os.getenv("SMTP_SERVER", ""),
-        smtp_port=int(os.getenv("SMTP_PORT", "587")),
-        smtp_username=os.getenv("SMTP_USERNAME", ""),
-        smtp_password=os.getenv("SMTP_PASSWORD", ""),
-        smtp_from=os.getenv("SMTP_FROM", ""),
-        smtp_to=os.getenv("SMTP_TO", ""),
-        min_alert_severity=os.getenv("MIN_ALERT_SEVERITY", "LOW"),
-        weekly_digest_day=os.getenv("WEEKLY_DIGEST_DAY", "Monday"),
-        failure_alert_threshold=int(os.getenv("FAILURE_ALERT_THRESHOLD", "3")),
-        retention_days=int(os.getenv("RETENTION_DAYS", "90")),
+        teams_webhook_url=_get_str("TEAMS_WEBHOOK_URL", ""),
+        nvd_api_key=_get_str("NVD_API_KEY", ""),
+        smtp_server=_get_str("SMTP_SERVER", ""),
+        smtp_port=int(_get_str("SMTP_PORT", "587")),
+        smtp_username=_get_str("SMTP_USERNAME", ""),
+        smtp_password=_get_str("SMTP_PASSWORD", ""),
+        smtp_from=_get_str("SMTP_FROM", ""),
+        smtp_to=_get_str("SMTP_TO", ""),
+        min_alert_severity=_get_str("MIN_ALERT_SEVERITY", "LOW").upper(),
+        weekly_digest_day=_get_str("WEEKLY_DIGEST_DAY", "Monday"),
+        failure_alert_threshold=int(_get_str("FAILURE_ALERT_THRESHOLD", "3")),
+        retention_days=int(_get_str("RETENTION_DAYS", "90")),
         sources=sources
     )

@@ -52,16 +52,17 @@ class OSVFetcher(BaseFetcher):
         # Severity
         severity = Severity.UNKNOWN
         for sev in v.get("severity", []):
-            if sev.get("type") == "CVSS_V3":
-                score_str = sev.get("score", "")
-                severity = self._cvss_to_severity(score_str)
+            score_val = sev.get("score")
+            parsed_sev = self._cvss_to_severity(score_val)
+            if parsed_sev != Severity.UNKNOWN:
+                severity = parsed_sev
                 break
                 
         # Database specific severity as fallback
         if severity == Severity.UNKNOWN and "database_specific" in v:
             db_sev = v["database_specific"].get("severity")
             if db_sev:
-                severity = db_sev.upper()
+                severity = str(db_sev).upper()
 
         desc = sanitize(v.get("details", ""))
         
@@ -84,10 +85,25 @@ class OSVFetcher(BaseFetcher):
             'fixed_version': fixed
         }
 
-    def _cvss_to_severity(self, vector: str) -> str:
-        # Very basic approximation if we only have the vector string
-        # Real CVSS parsing would require a library. We'll fallback to UNKNOWN if we can't parse easily
-        # Often OSV provides the database_specific severity anyway.
+    def _cvss_to_severity(self, score_val: Any) -> str:
+        if not score_val:
+            return Severity.UNKNOWN
+        if isinstance(score_val, (int, float)):
+            if score_val >= 9.0: return Severity.CRITICAL
+            if score_val >= 7.0: return Severity.HIGH
+            if score_val >= 4.0: return Severity.MEDIUM
+            if score_val > 0: return Severity.LOW
+        elif isinstance(score_val, str):
+            try:
+                val = float(score_val)
+                return self._cvss_to_severity(val)
+            except ValueError:
+                pass
+            upper_s = score_val.upper()
+            if "CRITICAL" in upper_s: return Severity.CRITICAL
+            if "HIGH" in upper_s: return Severity.HIGH
+            if "MEDIUM" in upper_s: return Severity.MEDIUM
+            if "LOW" in upper_s: return Severity.LOW
         return Severity.UNKNOWN
 
     def _extract_versions(self, affected_list: List[Dict[str, Any]]) -> (str, str):

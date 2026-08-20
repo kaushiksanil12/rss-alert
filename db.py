@@ -10,6 +10,8 @@ DB_PATH = os.path.join(DATA_DIR, 'vuln_alerts.db')
 def init_db():
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
+    cursor.execute('PRAGMA journal_mode=WAL;')
+    cursor.execute('PRAGMA synchronous=NORMAL;')
     # Dedup table: permanent index of seen vulnerabilities
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS dedup (

@@ -1,5 +1,6 @@
 import feedparser
 import re
+import requests
 from typing import List, Dict, Any
 from .base import BaseFetcher, Severity, sanitize
 
@@ -9,7 +10,11 @@ class RSSFetcher(BaseFetcher):
         self.url = url
 
     def fetch(self) -> List[Dict[str, Any]]:
-        feed = feedparser.parse(self.url)
+        headers = {'User-Agent': 'VulnWatch/1.0'}
+        response = requests.get(self.url, headers=headers, timeout=30)
+        response.raise_for_status()
+        
+        feed = feedparser.parse(response.content)
         findings = []
         
         for entry in feed.entries:

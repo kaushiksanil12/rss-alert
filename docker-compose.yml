@@ -4,6 +4,7 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: rss-alert-bot
+    init: true
     
     # Run the bot in an infinite loop, executing every 24 hours.
     # This simulates a daily cron job within the container.
