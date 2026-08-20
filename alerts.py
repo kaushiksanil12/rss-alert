@@ -33,14 +33,14 @@ class TeamsClient:
                         "body": [
                             {
                                 "type": "TextBlock",
-                                "text": "⚠️ Vulnerability Source Failure Alert",
+                                "text": "Vulnerability Source Failure Alert",
                                 "weight": "Bolder",
                                 "size": "Medium",
                                 "color": "Attention"
                             },
                             {
                                 "type": "TextBlock",
-                                "text": f"**Source `{source}`** has failed to fetch vulnerability data for **{consecutive_days} consecutive runs**. This may indicate a silent blind spot. Please investigate the source configuration and connectivity.",
+                                "text": f"**Source `{source}`** has failed to fetch vulnerability data for **{consecutive_days} consecutive runs**. Please investigate the source configuration and connectivity.",
                                 "wrap": True
                             }
                         ]
@@ -51,7 +51,7 @@ class TeamsClient:
         self._post(card)
 
     def _build_adaptive_card(self, findings: List[Dict[str, Any]]) -> Dict[str, Any]:
-        summary = f"🛡️ {len(findings)} new security finding(s) detected"
+        summary = f"{len(findings)} Security Finding(s) Detected"
         
         body_blocks = [
             {
@@ -84,9 +84,11 @@ class TeamsClient:
             if fixed:
                 facts.append({"title": "Fixed in:", "value": fixed})
                 
-            title_text = f"**{f['cve_id']}**"
+            cve_str = f"**{f['cve_id']}**"
             if f.get('url'):
-                title_text = f"[{f['cve_id']}]({f['url']})"
+                cve_str = f"[{f['cve_id']}]({f['url']})"
+                
+            title_text = f"**#{i + 1}.** {cve_str}"
                 
             body_blocks.append({
                 "type": "Container",

@@ -28,7 +28,7 @@ class EmailClient:
             subject = f"[{highest}] " + subject
 
         # Build HTML content
-        html = f"<h2>{len(findings)} New Security Findings</h2><ul>"
+        html = f"<h2>{len(findings)} New Security Findings</h2><ol>"
         for f in findings[:20]:
             html += f"<li><strong>{f['cve_id']}</strong> ({f['severity']}) - {f['technology']}<br/>"
             html += f"<em>Source: {f['source']}</em><br/>"
@@ -50,7 +50,7 @@ class EmailClient:
         if remaining > 0:
             html += f"<li>...and {remaining} more. See the database for the full list.</li>"
             
-        html += "</ul>"
+        html += "</ol>"
 
         self._send_email(subject, html)
 
@@ -58,7 +58,7 @@ class EmailClient:
         if not self.is_configured():
             return
             
-        subject = f"⚠️ Vulnerability Source Failure: {source}"
+        subject = f"Vulnerability Source Failure: {source}"
         html = f"<h2>Source '{source}' has failed for {consecutive_days} consecutive runs</h2>"
         html += "<p>This may indicate a silent blind spot. Please investigate the source configuration and connectivity.</p>"
         
