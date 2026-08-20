@@ -11,7 +11,6 @@ class Runner:
     def __init__(self, cfg: AppConfig):
         self.cfg = cfg
         self.main_client = TeamsClient(cfg.teams_webhook_url)
-        self.crit_client = TeamsClient(cfg.critical_webhook_url) if cfg.critical_webhook_url else None
         self.email_client = EmailClient(cfg)
         
         self.fetchers = []
@@ -37,29 +36,18 @@ class Runner:
                 all_new_findings.extend(new_findings)
                 
         if all_new_findings:
-            # Filter and route findings
+            # Filter findings based on global min severity
             to_alert = []
-            to_escalate = []
-            
             global_min = SEVERITY_ORDER.get(self.cfg.min_alert_severity, 0)
             
             for f in all_new_findings:
                 sev_score = SEVERITY_ORDER.get(f['severity'], 0)
-                
-                # Main channel
                 if sev_score >= global_min:
                     to_alert.append(f)
-                    
-                # Escalation channel (HIGH and CRITICAL)
-                if sev_score >= SEVERITY_ORDER[Severity.HIGH]:
-                    to_escalate.append(f)
                     
             if to_alert:
                 self.main_client.send_findings(to_alert)
                 self.email_client.send_findings(to_alert)
-                
-            if to_escalate and self.crit_client:
-                self.crit_client.send_findings(to_escalate)
                 
         # Prune old findings
         pruned = db.prune_findings(self.cfg.retention_days)

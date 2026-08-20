@@ -20,8 +20,6 @@ class SourceConfig:
 @dataclass
 class AppConfig:
     teams_webhook_url: str
-    critical_webhook_url: str
-    weekly_digest_webhook_url: str
     nvd_api_key: str
     smtp_server: str
     smtp_port: int
@@ -61,8 +59,6 @@ def load_config(sources_path: str = "sources.yaml") -> AppConfig:
         
     return AppConfig(
         teams_webhook_url=os.getenv("TEAMS_WEBHOOK_URL", ""),
-        critical_webhook_url=os.getenv("CRITICAL_WEBHOOK_URL", ""),
-        weekly_digest_webhook_url=os.getenv("WEEKLY_DIGEST_WEBHOOK_URL", ""),
         nvd_api_key=os.getenv("NVD_API_KEY", ""),
         smtp_server=os.getenv("SMTP_SERVER", ""),
         smtp_port=int(os.getenv("SMTP_PORT", "587")),
